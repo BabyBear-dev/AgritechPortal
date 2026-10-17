@@ -1,0 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using AgritechPortal.Models;
+
+namespace AgritechPortal.Data
+{
+    public class AgritechDbContext : DbContext
+    {
+        public AgritechDbContext(DbContextOptions<AgritechDbContext> options) : base(options) { }
+
+        public DbSet<Operator> Operators => Set<Operator>();
+        public DbSet<SensorTelemetry> SensorTelemetries => Set<SensorTelemetry>();
+        public DbSet<ActuatorRelay> ActuatorRelay => Set<ActuatorRelay>();
+    }
+}

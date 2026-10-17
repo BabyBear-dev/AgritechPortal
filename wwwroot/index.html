@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgriTech · Autonomous Greenhouse Intelligence</title>
+    <style>
+        /* ===== ROOT VARIABLES (consistent with dashboard) ===== */
+        :root {
+            --bg-deep: #020617;
+            --card-bg: rgba(6, 13, 26, 0.85);
+            --card-border: rgba(52, 211, 153, 0.25);
+            --emerald-primary: #10b981;
+            --emerald-bright: #34d399;
+            --emerald-glow: rgba(52, 211, 153, 0.3);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ===== BACKGROUND EFFECTS ===== */
+        .agri-bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(16,185,129,0.2) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(5,150,105,0.22) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, #064e3b 0%, #022c22 45%, #020617 90%);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bg-plant-silhouette {
+            position: absolute;
+            bottom: -20px;
+            opacity: 0.14;
+            font-size: clamp(9rem, 22vw, 17rem);
+            filter: drop-shadow(0 0 40px #34d399);
+            user-select: none;
+            z-index: -2;
+            animation: swayPlant 9s ease-in-out infinite alternate;
+        }
+        .plant-left { left: -40px; }
+        .plant-right { right: -40px; animation-delay: -4.5s; }
+
+        @keyframes swayPlant {
+            0% { transform: rotate(-3deg) scale(1); }
+            100% { transform: rotate(3deg) scale(1.06); }
+        }
+
+        .floating-particle {
+            position: absolute;
+            background: rgba(52, 211, 153, 0.35);
+            border: 1px solid rgba(110, 231, 183, 0.7);
+            border-radius: 50%;
+            box-shadow: 0 0 12px #34d399;
+            animation: floatUp 12s infinite linear;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(105vh) scale(0.4); opacity: 0; }
+            20% { opacity: 0.9; }
+            80% { opacity: 0.9; }
+            100% { transform: translateY(-10vh) scale(1.4); opacity: 0; }
+        }
+
+        .bg-grid-overlay {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(52, 211, 153, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(52, 211, 153, 0.05) 1px, transparent 1px);
+            background-size: 45px 45px;
+            z-index: -1;
+            backdrop-filter: blur(3px);
+        }
+
+        /* ===== AUTH CARD ===== */
+        .auth-wrapper {
+            width: 100%;
+            max-width: 480px;
+            padding: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(30px);
+            border-radius: 28px;
+            padding: clamp(24px, 5vw, 40px);
+            box-shadow:
+                0 30px 70px -15px rgba(0,0,0,0.95),
+                0 0 40px rgba(16,185,129,0.2),
+                inset 0 0 25px rgba(52,211,153,0.06);
+            position: relative;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--emerald-bright), transparent);
+            box-shadow: 0 0 20px var(--emerald-bright);
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .telemetry-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(52,211,153,0.3);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--emerald-bright);
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .telemetry-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--emerald-bright);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--emerald-bright);
+            animation: pulseDot 2s infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .brand-icon {
+            font-size: clamp(2.4rem, 5vw, 3rem);
+            margin-bottom: 6px;
+            display: inline-block;
+            filter: drop-shadow(0 0 20px rgba(52,211,153,0.8));
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(52,211,153,0.6)); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 26px rgba(52,211,153,1)); }
+        }
+
+        .brand-header h1 {
+            font-size: clamp(1.4rem, 4vw, 1.8rem);
+            font-weight: 700;
+            color: var(--emerald-bright);
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 20px rgba(52,211,153,0.4);
+        }
+
+        .brand-header p {
+            color: var(--text-muted);
+            font-size: clamp(0.78rem, 2vw, 0.85rem);
+            margin-top: 4px;
+        }
+
+        .copyright-tag {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* ===== TABS ===== */
+        .nav-tabs {
+            display: flex;
+            background: rgba(2,6,23,0.85);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(52,211,153,0.2);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.6);
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: #ffffff;
+            box-shadow: 0 4px 18px var(--emerald-glow);
+            text-shadow: 0 0 10px rgba(255,255,255,0.4);
+        }
+
+        /* ===== FORMS ===== */
+        .form-pane { display: none; }
+        .form-pane.active { display: block; animation: fadeIn 0.35s cubic-bezier(0.16,1,0.3,1); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--emerald-bright);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            text-shadow: 0 0 8px rgba(52,211,153,0.3);
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(2,6,23,0.9);
+            border: 1px solid rgba(52,211,153,0.3);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--emerald-bright);
+            box-shadow: 0 0 0 4px var(--emerald-glow), inset 0 2px 4px rgba(0,0,0,0.5);
+            background: rgba(2,6,23,0.98);
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        .form-row .form-group { flex: 1; }
+
+        .forgot-link-container {
+            text-align: right;
+            margin-top: -4px;
+            margin-bottom: 14px;
+        }
+        .forgot-link-container a {
+            color: var(--emerald-bright);
+            font-size: 0.78rem;
+            text-decoration: none;
+            font-weight: 600;
+            transition: text-shadow 0.2s ease;
+            cursor: pointer;
+        }
+        .forgot-link-container a:hover {
+            text-shadow: 0 0 8px var(--emerald-bright);
+            text-decoration: underline;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 6px 22px var(--emerald-glow);
+            margin-top: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            border: 1px solid rgba(110,231,183,0.4);
+        }
+        .action-btn:hover {
+            background: linear-gradient(135deg, #047857, #059669);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(16,185,129,0.6);
+        }
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .secondary-action-btn {
+            background: transparent;
+            border: 1px solid rgba(52,211,153,0.3);
+            color: var(--text-muted);
+            margin-top: 10px;
+            box-shadow: none;
+        }
+        .secondary-action-btn:hover {
+            background: rgba(52,211,153,0.08);
+            color: var(--text-main);
+        }
+
+        #feedback-msg {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 0.82rem;
+            min-height: 18px;
+            font-weight: 600;
+        }
+        .msg-error { color: #f87171; text-shadow: 0 0 10px rgba(248,113,113,0.4); }
+        .msg-success { color: var(--emerald-bright); text-shadow: 0 0 10px rgba(52,211,153,0.4); }
+    </style>
+</head>
+<body>
+
+    <!-- ===== BACKGROUND ===== -->
+    <div class="agri-bg-canvas" id="bgCanvas"></div>
+    <div class="bg-plant-silhouette plant-left">🌿</div>
+    <div class="bg-plant-silhouette plant-right">🌳</div>
+    <div class="bg-grid-overlay"></div>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="brand-header">
+                <div class="telemetry-pill">
+                    <div class="telemetry-dot"></div>
+                    <span>AUTONOMOUS MATRIX ONLINE</span>
+                </div>
+                <div><span class="brand-icon">🌱</span></div>
+                <h1>AgriAI</h1>
+                <p>Autonomous Greenhouse Intelligence</p>
+                <div class="copyright-tag">©2026 AgriAI Systems. All Rights Reserved.</div>
+            </div>
+
+            <div class="nav-tabs" id="navTabsContainer">
+                <div class="tab active" onclick="switchView('login')">Sign In</div>
+                <div class="tab" onclick="switchView('register')">Register</div>
+            </div>
+
+            <!-- ===== LOGIN PANE ===== -->
+            <div id="login-pane" class="form-pane active">
+                <div class="form-group">
+                    <label><span>🌿 Operator Email</span></label>
+                    <input type="email" id="login-email" placeholder="operator@agriai.internal" />
+                </div>
+                <div class="form-group">
+                    <label><span>🔒 Password Key</span></label>
+                    <input type="password" id="login-pass" placeholder="••••••••••••" />
+                </div>
+                <div class="forgot-link-container">
+                    <a onclick="switchView('forgot')">Forgot Password?</a>
+                </div>
+                <button class="action-btn" id="loginBtn" onclick="executeLogin()">Access Control Center</button>
+            </div>
+
+            <!-- ===== REGISTER PANE ===== -->
+            <div id="register-pane" class="form-pane">
+                <div class="form-group">
+                    <label><span>👤 Full Name</span></label>
+                    <input type="text" id="reg-name" placeholder="e.g. Alex Morgan" />
+                </div>
+                <div class="form-group">
+                    <label><span>🌿 Operator Email</span></label>
+                    <input type="email" id="reg-email" placeholder="operator@agriai.internal" />
+                </div>
+                <div class="form-group">
+                    <label><span>📱 Mobile Phone</span></label>
+                    <input type="tel" id="reg-phone" placeholder="+27 82 123 4567" />
+                </div>
+                <div class="form-group">
+                    <label><span>🛡️ System Role</span></label>
+                    <select id="reg-role">
+                        <option value="Owner">Owner</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Worker">Worker</option>
+                        <option value="Agronomist">Agronomist</option>
+                        <option value="Technician">Technician</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><span>🔒 Password</span></label>
+                        <input type="password" id="reg-pass" placeholder="••••••••••••" />
+                    </div>
+                    <div class="form-group">
+                        <label><span>🔒 Confirm</span></label>
+                        <input type="password" id="reg-confirm-pass" placeholder="••••••••••••" />
+                    </div>
+                </div>
+                <button class="action-btn" id="registerBtn" onclick="executeRegister()">Provision Account</button>
+            </div>
+
+            <!-- ===== FORGOT PASSWORD PANE ===== -->
+            <div id="forgot-pane" class="form-pane">
+                <div class="form-group">
+                    <label><span>🌿 Recovery Email</span></label>
+                    <input type="email" id="forgot-email" placeholder="operator@agriai.internal" />
+                </div>
+                <button class="action-btn" onclick="executeForgotPassword()">Dispatch Reset Link</button>
+                <button class="action-btn secondary-action-btn" onclick="switchView('login')">Return to Sign In</button>
+            </div>
+
+            <div id="feedback-msg"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== BACKGROUND PARTICLES =====
+        (function initParticles() {
+            const canvas = document.getElementById('bgCanvas');
+            for (let i = 0; i < 35; i++) {
+                const p = document.createElement('div');
+                p.className = 'floating-particle';
+                const size = Math.random() * 7 + 3;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDuration = (Math.random() * 9 + 6) + 's';
+                p.style.animationDelay = (Math.random() * 6) + 's';
+                canvas.appendChild(p);
+            }
+        })();
+
+        // ===== TAB SWITCHING =====
+        function switchView(view) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-pane').forEach(p => p.classList.remove('active'));
+            document.getElementById('feedback-msg').innerText = '';
+            document.getElementById('feedback-msg').className = '';
+
+            const tabsContainer = document.getElementById('navTabsContainer');
+            if (view === 'login') {
+                tabsContainer.style.display = 'flex';
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('login-pane').classList.add('active');
+            } else if (view === 'register') {
+                tabsContainer.style.display = 'flex';
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('register-pane').classList.add('active');
+            } else if (view === 'forgot') {
+                tabsContainer.style.display = 'none';
+                document.getElementById('forgot-pane').classList.add('active');
+            }
+        }
+
+        // ===== REGISTER =====
+        async function executeRegister() {
+            const fullName = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const role = document.getElementById('reg-role').value;
+            const password = document.getElementById('reg-pass').value.trim();
+            const confirm = document.getElementById('reg-confirm-pass').value.trim();
+            const msg = document.getElementById('feedback-msg');
+            const btn = document.getElementById('registerBtn');
+
+            // Validation
+            if (!fullName || !email || !password || !confirm || !role) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Please complete all required fields.';
+                return;
+            }
+            if (fullName.length < 2 || fullName.length > 100) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Full Name must be between 2 and 100 characters.';
+                return;
+            }
+            if (password !== confirm) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Passwords do not match.';
+                return;
+            }
+            if (password.length < 6) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Provisioning...';
+
+            try {
+                const res = await fetch('/api/Auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, email, phone, role, passwordHash: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msg.className = 'msg-success';
+                    msg.innerText = 'Account created successfully! Redirecting...';
+                    localStorage.setItem('operatorEmail', email);
+                    localStorage.setItem('operatorRole', role);
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1200);
+                } else {
+                    msg.className = 'msg-error';
+                    msg.innerText = data.message || 'Registration failed.';
+                }
+            } catch (err) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Network error. Please try again.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Provision Account';
+            }
+        }
+
+        // ===== LOGIN =====
+        async function executeLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-pass').value.trim();
+            const msg = document.getElementById('feedback-msg');
+            const btn = document.getElementById('loginBtn');
+
+            if (!email || !password) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Please enter valid credentials.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            try {
+                const res = await fetch('/api/Auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, passwordHash: password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('operatorEmail', data.email || email);
+                    localStorage.setItem('operatorId', data.operatorId || '1');
+                    localStorage.setItem('operatorRole', data.role || 'Owner');
+                    window.location.href = 'dashboard.html';
+                } else {
+                    msg.className = 'msg-error';
+                    msg.innerText = data.message || 'Invalid credentials.';
+                }
+            } catch (err) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Server unreachable.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Access Control Center';
+            }
+        }
+
+        // ===== FORGOT PASSWORD =====
+        async function executeForgotPassword() {
+            const email = document.getElementById('forgot-email').value.trim();
+            const msg = document.getElementById('feedback-msg');
+
+            if (!email) {
+                msg.className = 'msg-error';
+                msg.innerText = 'Please enter your recovery email.';
+                return;
+            }
+
+            msg.className = '';
+            msg.style.color = '#cbd5e1';
+            msg.innerText = 'Dispatching recovery telemetry...';
+
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                msg.className = 'msg-success';
+                msg.innerText = data.message || 'If your email is registered, a reset link has been dispatched.';
+            } catch {
+                msg.className = 'msg-error';
+                msg.innerText = 'Network communication error.';
+            }
+        }
+
+        // ===== ENTER KEY SUPPORT =====
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (document.getElementById('login-pane').classList.contains('active')) {
+                    executeLogin();
+                } else if (document.getElementById('register-pane').classList.contains('active')) {
+                    executeRegister();
+                } else if (document.getElementById('forgot-pane').classList.contains('active')) {
+                    executeForgotPassword();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
